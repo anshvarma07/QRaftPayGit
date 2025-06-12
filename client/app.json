@@ -1,0 +1,18 @@
+{
+  "expo": {
+    "name": "QR Payment",
+    "slug": "qr-payment",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "extra": {
+      "API_BASE_URL": "http://localhost:8080"
+    },
+    "plugins": [
+      "expo-barcode-scanner"
+    ]
+  }
+}
