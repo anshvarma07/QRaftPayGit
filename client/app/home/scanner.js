@@ -115,6 +115,7 @@ export default function Scanner() {
           text: 'Done',
           style: 'default',
           onPress: () => {
+            console.log('Navigating to add transaction with vendor ID:', data);
             const vendorId=data;
             router.replace({
                 pathname: '/home/addtransaction',

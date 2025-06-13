@@ -16,7 +16,9 @@ exports.getDashboard = async (req, res) => {
 };
 
 exports.generateQR = async (req, res) => {
-  const qrData = `vendor:${req.user.id}:${Date.now()}`;
+  const QRCode = require('qrcode');
+  const qrData = `vendor:${req.body.vendorName}:${req.user.id}`;
+  console.log(qrData)
   const qrImage = await QRCode.toDataURL(qrData);
   res.json({ success: true, data: { qrCode: qrData, image: qrImage } });
 };
