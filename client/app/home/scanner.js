@@ -97,10 +97,10 @@ export default function Scanner() {
         console.log('Haptic feedback not available');
       }
     }
-
+    console.log(data),
     Alert.alert(
       '🎯 Code Scanned Successfully!', 
-      `${data}`,
+      `Detected a scan for vendor:- ${data.split(':')[1]}`,
       [
         {
           text: 'Scan Another',

@@ -89,9 +89,9 @@ const handleSubmit = async () => {
       Alert.alert('Invalid Vendor', 'Vendor format is incorrect.', [{ text: 'OK' }]);
       return;
     }
-
+    console.log('Vendor ID Parts:', vendorIdParts[2].trim());
     const payload = {
-      vendorId: vendorIdParts[1].trim(),
+      vendorId: vendorIdParts[2].trim(),
       amount: parseFloat(amount),
       remarks: remarks.trim()
     };
@@ -106,7 +106,7 @@ const handleSubmit = async () => {
     // Success
     Alert.alert(
       '✅ Transaction Added',
-      `₹${amount} added to debt for ${vendorName}`,
+      `₹${amount} added to debt for ${vendorName.split(':')[1] || 'Unknown Vendor'}`,
       [
         {
           text: 'Add Another',
@@ -226,7 +226,7 @@ const handleSubmit = async () => {
             <Text style={styles.summaryTitle}>Transaction Summary</Text>
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Vendor:</Text>
-              <Text style={styles.summaryValue}>{vendorName}</Text>
+              <Text style={styles.summaryValue}>{vendorName.split(':')[1] || 'Unknown Vendor'}</Text>
             </View>
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Amount:</Text>
