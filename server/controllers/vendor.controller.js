@@ -16,11 +16,30 @@ exports.getDashboard = async (req, res) => {
 };
 
 exports.generateQR = async (req, res) => {
-  const QRCode = require('qrcode');
-  const qrData = `vendor:${req.body.vendorName}:${req.user.id}`;
-  console.log(qrData)
-  const qrImage = await QRCode.toDataURL(qrData);
-  res.json({ success: true, data: { qrCode: qrData, image: qrImage } });
+  try {
+    const QRCode = require('qrcode');
+    const { vendorName } = req.body;
+
+    if (!vendorName) {
+      return res.status(400).json({ success: false, message: 'Vendor name is required' });
+    }
+
+    const qrData = `vendor:${vendorName}:${req.user.id}`;
+    console.log('QR Data:', qrData);
+
+    const qrImage = await QRCode.toDataURL(qrData);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        qrCode: qrData,
+        image: qrImage,
+      },
+    });
+  } catch (error) {
+    console.error('QR Generation Error:', error);
+    res.status(500).json({ success: false, message: 'QR generation failed' });
+  }
 };
 
 
