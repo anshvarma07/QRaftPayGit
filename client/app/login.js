@@ -35,7 +35,7 @@ export default function LoginScreen() {
         await AsyncStorage.setItem('username', res.user.name);
         Alert.alert('Welcome back!', 'Login successful');
         if (res.user.role === 'vendor') {
-          router.replace('/vendor/vendor-landingpage');
+          router.replace('/vendor/navigation/AppNavigator');
         }
         else if (res.user.role === 'buyer') {
           router.replace('/home/landingpage');
