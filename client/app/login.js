@@ -32,6 +32,7 @@ export default function LoginScreen() {
       const res = await login(email, password);
       if (res.success) {
         await AsyncStorage.setItem('token', res.token);
+        await AsyncStorage.setItem('username', res.user.name);
         Alert.alert('Welcome back!', 'Login successful');
         if (res.user.role === 'vendor') {
           router.replace('/vendor/vendor-landingpage');

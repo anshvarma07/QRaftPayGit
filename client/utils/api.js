@@ -137,4 +137,22 @@ export const registerUser = async (userData) => {
   }
 };
 
+export const generateVendorQR = async (token, vendorName) => {
+  try {
+    const res = await axios.post(
+      `${API_BASE_URL}/vendor/generateQR`,
+      { vendorName },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+    return res.data;
+  } catch (error) {
+    console.error('Vendor QR Generation API error:', error.response?.data || error.message);
+    throw error;
+  }
+};
 export default apiClient;
