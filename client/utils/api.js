@@ -74,12 +74,12 @@ export const getTransactions = async (token) => {
 // Get transactions filtered by vendor
 export const getTransactionsByVendor = async (token, vendorId) => {
   try {
-    const response = await apiClient.get(`/transactions?vendorId=${vendorId}`, {
+    const response = await apiClient.get(`/transactions/vendor/${vendorId}`, {
       headers: {
         Authorization: `Bearer ${token}`
       }
     });
-    return response.data;
+    return response.data.data || [];
   } catch (error) {
     console.error('Get vendor transactions API error:', error.response?.data || error.message);
     throw error;

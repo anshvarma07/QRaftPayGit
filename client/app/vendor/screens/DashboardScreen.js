@@ -1,12 +1,37 @@
-import React from 'react';
-import { View, Text, ScrollView, StyleSheet, Dimensions, Platform } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient'; // or react-native-linear-gradient
+import React, { useEffect, useState } from 'react';
+import { View, Text, ScrollView, StyleSheet, Dimensions, Platform, ActivityIndicator } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import Header from '../components/Header';
 import StatCard from '../components/StatCard';
+import { getTransactionsByVendor } from '../../../utils/api'; // Update path accordingly
 
 const { width } = Dimensions.get('window');
 
 export default function DashboardScreen() {
+  const [transactions, setTransactions] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      try {
+        const token = await AsyncStorage.getItem('token');
+        const vendorId = await AsyncStorage.getItem('UniqueID');
+        if (token && vendorId) {
+          const txData = await getTransactionsByVendor(token, vendorId);
+          setTransactions(txData);
+        }
+      } catch (error) {
+        console.error('Error fetching transactions:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTransactions();
+  }, []);
+
   return (
     <View style={styles.container}>
       <LinearGradient
@@ -16,15 +41,13 @@ export default function DashboardScreen() {
         style={styles.gradientBackground}
       >
         <Header />
-        
-        {/* Welcome Section */}
         <View style={styles.welcomeSection}>
           <Text style={styles.welcomeText}>Welcome Back 👋</Text>
           <Text style={styles.subtitle}>Here's what's happening with your business today</Text>
         </View>
       </LinearGradient>
 
-      <ScrollView 
+      <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
@@ -32,36 +55,36 @@ export default function DashboardScreen() {
         {/* Stats Grid */}
         <View style={styles.statsContainer}>
           <View style={styles.statsRow}>
-            <StatCard 
-              title="Total Sales" 
-              value="₹45,230" 
+            <StatCard
+              title="Total Sales"
+              value="₹45,230"
               trend="+12.5%"
               trendUp={true}
               icon="💰"
               gradient={['#10B981', '#059669']}
             />
-            <StatCard 
-              title="Today's Sales" 
-              value="₹2,150" 
+            <StatCard
+              title="Today's Sales"
+              value="₹2,150"
               trend="+8.2%"
               trendUp={true}
               icon="📈"
               gradient={['#3B82F6', '#1D4ED8']}
             />
           </View>
-          
+
           <View style={styles.statsRow}>
-            <StatCard 
-              title="Transactions" 
-              value="143" 
-              trend="+23"
+            <StatCard
+              title="Transactions"
+              value={(transactions?.length || 0).toString()}
+              trend={`+${transactions.length}`}
               trendUp={true}
               icon="💳"
               gradient={['#8B5CF6', '#7C3AED']}
             />
-            <StatCard 
-              title="Rating" 
-              value="Coming Soon" 
+            <StatCard
+              title="Rating"
+              value="Coming Soon"
               trend="Coming Soon"
               trendUp={true}
               icon="⭐"
@@ -70,7 +93,7 @@ export default function DashboardScreen() {
           </View>
         </View>
 
-        {/* Quick Actions Section */}
+        {/* Quick Actions */}
         <View style={styles.quickActionsContainer}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
           <View style={styles.actionButtons}>
@@ -80,14 +103,14 @@ export default function DashboardScreen() {
               </View>
               <Text style={styles.actionText}>View Reports</Text>
             </View>
-            
+
             <View style={styles.actionButton}>
               <View style={styles.actionIcon}>
                 <Text style={styles.actionEmoji}>🔔</Text>
               </View>
               <Text style={styles.actionText}>Notifications</Text>
             </View>
-            
+
             <View style={styles.actionButton}>
               <View style={styles.actionIcon}>
                 <Text style={styles.actionEmoji}>⚙️</Text>
@@ -97,40 +120,31 @@ export default function DashboardScreen() {
           </View>
         </View>
 
-        {/* Recent Activity */}
+        {/* Recent Activity Section */}
         <View style={styles.recentActivity}>
           <Text style={styles.sectionTitle}>Recent Activity</Text>
           <View style={styles.activityCard}>
-            <View style={styles.activityItem}>
-              <View style={styles.activityDot} />
-              <View style={styles.activityContent}>
-                <Text style={styles.activityTitle}>New order received</Text>
-                <Text style={styles.activityTime}>2 minutes ago</Text>
-              </View>
-              <Text style={styles.activityAmount}>₹850</Text>
-            </View>
-            
-            <View style={styles.activityItem}>
-              <View style={[styles.activityDot, { backgroundColor: '#3B82F6' }]} />
-              <View style={styles.activityContent}>
-                <Text style={styles.activityTitle}>Payment completed</Text>
-                <Text style={styles.activityTime}>15 minutes ago</Text>
-              </View>
-              <Text style={styles.activityAmount}>₹1,200</Text>
-            </View>
-            
-            <View style={styles.activityItem}>
-              <View style={[styles.activityDot, { backgroundColor: '#F59E0B' }]} />
-              <View style={styles.activityContent}>
-                <Text style={styles.activityTitle}>Customer review</Text>
-                <Text style={styles.activityTime}>1 hour ago</Text>
-              </View>
-              <Text style={styles.activityRating}>5.0 ⭐</Text>
-            </View>
+            {loading ? (
+              <ActivityIndicator size="large" color="#6366F1" />
+            ) : transactions.length === 0 ? (
+              <Text style={{ textAlign: 'center', color: '#64748B' }}>No recent transactions</Text>
+            ) : (
+              transactions.map((tx) => (
+                <View key={tx._id} style={styles.activityItem}>
+                  <View style={styles.activityDot} />
+                  <View style={styles.activityContent}>
+                    <Text style={styles.activityTitle}>{tx.remarks}</Text>
+                    <Text style={styles.activityTime}>
+                      {new Date(tx.createdAt).toLocaleString()}
+                    </Text>
+                  </View>
+                  <Text style={styles.activityAmount}>₹{tx.amount}</Text>
+                </View>
+              ))
+            )}
           </View>
         </View>
 
-        {/* Bottom spacing */}
         <View style={styles.bottomSpacing} />
       </ScrollView>
     </View>
@@ -138,10 +152,7 @@ export default function DashboardScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-  },
+  container: { flex: 1, backgroundColor: '#F8FAFC' },
   gradientBackground: {
     paddingTop: Platform.OS === 'ios' ? 50 : 30,
     paddingBottom: 30,
@@ -197,10 +208,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 20,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 12,
     elevation: 5,
@@ -235,10 +243,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 20,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 12,
     elevation: 5,
@@ -275,12 +280,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#10B981',
   },
-  activityRating: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#F59E0B',
-  },
   bottomSpacing: {
-    height: 100, // Space for bottom tab navigator
+    height: 100,
   },
 });

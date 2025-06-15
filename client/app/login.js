@@ -33,6 +33,7 @@ export default function LoginScreen() {
       if (res.success) {
         await AsyncStorage.setItem('token', res.token);
         await AsyncStorage.setItem('username', res.user.name);
+        await AsyncStorage.setItem('UniqueID', res.user._id);
         Alert.alert('Welcome back!', 'Login successful');
         if (res.user.role === 'vendor') {
           router.replace('/vendor/navigation/AppNavigator');
