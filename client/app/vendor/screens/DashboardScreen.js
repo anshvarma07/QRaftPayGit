@@ -133,7 +133,8 @@ export default function DashboardScreen() {
                 <View key={tx._id} style={styles.activityItem}>
                   <View style={styles.activityDot} />
                   <View style={styles.activityContent}>
-                    <Text style={styles.activityTitle}>{tx.remarks}</Text>
+                    <Text style={styles.activityTitle}>{tx.buyerId.name}</Text>
+                    <Text style={styles.activityTime}>{tx.remarks}</Text>
                     <Text style={styles.activityTime}>
                       {new Date(tx.createdAt).toLocaleString()}
                     </Text>

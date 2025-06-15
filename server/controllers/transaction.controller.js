@@ -16,7 +16,9 @@ exports.getTransactionsByVendor = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Vendor ID is required' });
     }
 
-    const transactions = await Transaction.find({ vendorId }).populate('vendorId buyerId');
+    const transactions = await Transaction.find({ vendorId })
+      .sort({ createdAt: -1 }) 
+      .populate('vendorId buyerId');
 
     return res.json({ success: true, data: transactions });
   } catch (error) {
@@ -24,7 +26,6 @@ exports.getTransactionsByVendor = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Server error' });
   }
 };
-
 
 
 exports.createTransaction = async (req, res) => {
