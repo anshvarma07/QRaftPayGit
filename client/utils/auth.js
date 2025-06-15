@@ -10,9 +10,7 @@ export async function login(email, password) {
       email,
       password,
     });
-
-    console.log('Full response data:', res.data);
-
+    
     const token = res.data.data?.token;
     const user = res.data.data?.user;
 

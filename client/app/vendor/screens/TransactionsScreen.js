@@ -1,199 +1,169 @@
-import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
-  TouchableOpacity, 
-  Platform,
-  Dimensions 
+// screens/TransactionsScreen.js
+import React, { useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  ActivityIndicator,
+  RefreshControl,
+  Dimensions,
+  StatusBar,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Search, Filter, TrendingUp, TrendingDown, Clock } from 'lucide-react-native';
 import Header from '../components/Header';
+import { getTransactionsByVendor } from '../../../utils/api';
+import TransactionBox from '../components/TransactionBox';
 
-const { width } = Dimensions.get('window');
-
-// Mock transaction data
-const transactions = [
-  {
-    id: '1',
-    type: 'credit',
-    amount: 1250,
-    description: 'Order #12345 - Pizza Margherita',
-    customer: 'Rahul Sharma',
-    time: '2 hours ago',
-    status: 'completed'
-  },
-  {
-    id: '2',
-    type: 'credit',
-    amount: 850,
-    description: 'Order #12344 - Burger Combo',
-    customer: 'Priya Singh',
-    time: '4 hours ago',
-    status: 'completed'
-  },
-  {
-    id: '3',
-    type: 'debit',
-    amount: 200,
-    description: 'Platform Fee',
-    customer: 'System',
-    time: '6 hours ago',
-    status: 'completed'
-  },
-  {
-    id: '4',
-    type: 'credit',
-    amount: 2100,
-    description: 'Order #12343 - Family Feast',
-    customer: 'Amit Kumar',
-    time: '1 day ago',
-    status: 'completed'
-  },
-  {
-    id: '5',
-    type: 'credit',
-    amount: 750,
-    description: 'Order #12342 - Chicken Biryani',
-    customer: 'Sneha Patel',
-    time: '1 day ago',
-    status: 'pending'
-  },
-];
+const { width, height } = Dimensions.get('window');
 
 export default function TransactionsScreen() {
-  const [selectedFilter, setSelectedFilter] = useState('all');
+  const [transactions, setTransactions] = useState([]);
+  const [grouped, setGrouped] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [totalRevenue, setTotalRevenue] = useState(0);
+  const [totalCustomers, setTotalCustomers] = useState(0);
 
-  const getTotalEarnings = () => {
-    return transactions
-      .filter(t => t.type === 'credit')
-      .reduce((sum, t) => sum + t.amount, 0);
+  const fetchTransactions = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const vendorId = await AsyncStorage.getItem('UniqueID');
+      if (token && vendorId) {
+        const txData = await getTransactionsByVendor(token, vendorId);
+        setTransactions(txData);
+
+        const groupedByBuyer = {};
+        let revenue = 0;
+        
+        txData.forEach((tx) => {
+          const buyerId = tx.buyerId._id;
+          if (!groupedByBuyer[buyerId]) groupedByBuyer[buyerId] = [];
+          groupedByBuyer[buyerId].push(tx);
+          revenue += tx.amount;
+        });
+        
+        setGrouped(groupedByBuyer);
+        setTotalRevenue(revenue);
+        setTotalCustomers(Object.keys(groupedByBuyer).length);
+      }
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   };
 
-  const getTransactionIcon = (type, status) => {
-    if (status === 'pending') return <Clock size={16} color="#F59E0B" />;
-    return type === 'credit' ? 
-      <TrendingUp size={16} color="#10B981" /> : 
-      <TrendingDown size={16} color="#EF4444" />;
-  };
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    fetchTransactions();
+  }, []);
 
-  const TransactionItem = ({ transaction }) => (
-    <TouchableOpacity style={styles.transactionCard} activeOpacity={0.8}>
-      <View style={styles.transactionHeader}>
-        <View style={styles.transactionIcon}>
-          {getTransactionIcon(transaction.type, transaction.status)}
-        </View>
-        <View style={styles.transactionInfo}>
-          <Text style={styles.transactionDescription} numberOfLines={1}>
-            {transaction.description}
-          </Text>
-          <Text style={styles.customerName}>{transaction.customer}</Text>
-          <Text style={styles.transactionTime}>{transaction.time}</Text>
-        </View>
-        <View style={styles.amountContainer}>
-          <Text style={[
-            styles.amount,
-            { color: transaction.type === 'credit' ? '#10B981' : '#EF4444' }
-          ]}>
-            {transaction.type === 'credit' ? '+' : '-'}₹{transaction.amount}
-          </Text>
-          <View style={[
-            styles.statusBadge,
-            { backgroundColor: transaction.status === 'completed' ? '#DCFCE7' : '#FEF3C7' }
-          ]}>
-            <Text style={[
-              styles.statusText,
-              { color: transaction.status === 'completed' ? '#166534' : '#92400E' }
-            ]}>
-              {transaction.status}
-            </Text>
-          </View>
-        </View>
+  useEffect(() => {
+    fetchTransactions();
+  }, []);
+
+  const renderEmptyState = () => (
+    <View style={styles.emptyContainer}>
+      <View style={styles.emptyIconContainer}>
+        <Text style={styles.emptyIcon}>📊</Text>
       </View>
-    </TouchableOpacity>
+      <Text style={styles.emptyTitle}>No Transactions Yet</Text>
+      <Text style={styles.emptySubtitle}>
+        Your customer transactions will appear here once you start receiving payments.
+      </Text>
+    </View>
+  );
+
+  const renderStatsCards = () => (
+    <View style={styles.statsContainer}>
+      <View style={styles.statCard}>
+        <Text style={styles.statValue}>₹{totalRevenue.toLocaleString()}</Text>
+        <Text style={styles.statLabel}>Total Revenue</Text>
+      </View>
+      <View style={styles.statCard}>
+        <Text style={styles.statValue}>{totalCustomers}</Text>
+        <Text style={styles.statLabel}>Active Customers</Text>
+      </View>
+      <View style={styles.statCard}>
+        <Text style={styles.statValue}>{transactions.length}</Text>
+        <Text style={styles.statLabel}>Total Transactions</Text>
+      </View>
+    </View>
   );
 
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#6366F1" />
+      
+      {/* Header Section */}
       <LinearGradient
         colors={['#6366F1', '#8B5CF6', '#EC4899']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.gradientBackground}
+        style={styles.gradient}
       >
         <Header />
-        
-        {/* Summary Section */}
-        <View style={styles.summarySection}>
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryLabel}>Total Earnings</Text>
-            <Text style={styles.summaryAmount}>₹{getTotalEarnings().toLocaleString()}</Text>
-            <Text style={styles.summarySubtext}>This month</Text>
-          </View>
+        <View style={styles.headerContent}>
+          <Text style={styles.heading}>Transaction Overview</Text>
+          <Text style={styles.subheading}>
+            Track your sales and customer activity
+          </Text>
         </View>
       </LinearGradient>
 
-      <ScrollView 
-        style={styles.scrollView}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Filter Section */}
-        <View style={styles.filterSection}>
-          <Text style={styles.sectionTitle}>Recent Transactions</Text>
-          <View style={styles.filterButtons}>
-            {['all', 'credit', 'debit'].map((filter) => (
-              <TouchableOpacity
-                key={filter}
-                style={[
-                  styles.filterButton,
-                  selectedFilter === filter && styles.activeFilterButton
-                ]}
-                onPress={() => setSelectedFilter(filter)}
-              >
-                <Text style={[
-                  styles.filterText,
-                  selectedFilter === filter && styles.activeFilterText
-                ]}>
-                  {filter.charAt(0).toUpperCase() + filter.slice(1)}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+      {/* Main Content */}
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#6366F1" />
+          <Text style={styles.loadingText}>Loading transactions...</Text>
         </View>
+      ) : (
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={['#6366F1']}
+              tintColor="#6366F1"
+            />
+          }
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Stats Cards */}
+          {totalCustomers > 0 && renderStatsCards()}
 
-        {/* Action Buttons */}
-        <View style={styles.actionButtons}>
-          <TouchableOpacity style={styles.actionButton}>
-            <Search size={20} color="#6366F1" />
-            <Text style={styles.actionButtonText}>Search</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.actionButton}>
-            <Filter size={20} color="#6366F1" />
-            <Text style={styles.actionButtonText}>Filter</Text>
-          </TouchableOpacity>
-        </View>
+          {/* Section Header */}
+          {totalCustomers > 0 && (
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Customer Transactions</Text>
+              <Text style={styles.sectionSubtitle}>
+                Tap on any customer to view detailed transaction history
+              </Text>
+            </View>
+          )}
 
-        {/* Transactions List */}
-        <View style={styles.transactionsList}>
-          {transactions
-            .filter(t => selectedFilter === 'all' || t.type === selectedFilter)
-            .map((transaction) => (
-              <TransactionItem key={transaction.id} transaction={transaction} />
-            ))}
-        </View>
+          {/* Transaction Boxes or Empty State */}
+          {Object.keys(grouped).length === 0 ? (
+            renderEmptyState()
+          ) : (
+            <View style={styles.transactionsList}>
+              {Object.keys(grouped).map((buyerId) => (
+                <TransactionBox
+                  key={buyerId}
+                  buyer={grouped[buyerId][0].buyerId}
+                  transactions={grouped[buyerId]}
+                />
+              ))}
+            </View>
+          )}
 
-        {/* Load More Button */}
-        <TouchableOpacity style={styles.loadMoreButton}>
-          <Text style={styles.loadMoreText}>Load More Transactions</Text>
-        </TouchableOpacity>
-
-        {/* Bottom spacing */}
-        <View style={styles.bottomSpacing} />
-      </ScrollView>
+          {/* Bottom Padding */}
+          <View style={styles.bottomPadding} />
+        </ScrollView>
+      )}
     </View>
   );
 }
@@ -203,186 +173,137 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F8FAFC',
   },
-  gradientBackground: {
-    paddingTop: Platform.OS === 'ios' ? 50 : 30,
+  gradient: {
+    paddingTop: StatusBar.currentHeight + 10 || 50,
     paddingBottom: 30,
+    paddingHorizontal: 20,
     borderBottomLeftRadius: 32,
     borderBottomRightRadius: 32,
   },
-  summarySection: {
-    paddingHorizontal: 24,
-    paddingTop: 20,
+  headerContent: {
+    marginTop: 10,
   },
-  summaryCard: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 20,
-    padding: 24,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
-  },
-  summaryLabel: {
-    fontSize: 16,
-    color: 'rgba(255,255,255,0.8)',
-    fontWeight: '500',
-    marginBottom: 8,
-  },
-  summaryAmount: {
-    fontSize: 32,
+  heading: {
+    fontSize: 28,
     fontWeight: '800',
     color: '#FFFFFF',
     marginBottom: 4,
   },
-  summarySubtext: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.7)',
+  subheading: {
+    fontSize: 16,
+    color: '#E2E8F0',
     fontWeight: '500',
+    opacity: 0.9,
   },
   scrollView: {
     flex: 1,
-    marginTop: 20,
   },
-  content: {
-    paddingHorizontal: 20,
+  scrollContent: {
+    flexGrow: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 100,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
     paddingTop: 20,
+    paddingBottom: 10,
+    gap: 12,
   },
-  filterSection: {
-    marginBottom: 20,
+  statCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+  },
+  statValue: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#1E293B',
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#64748B',
+    fontWeight: '600',
+    textAlign: 'center',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  sectionHeader: {
+    paddingHorizontal: 16,
+    paddingTop: 24,
+    paddingBottom: 8,
   },
   sectionTitle: {
     fontSize: 20,
     fontWeight: '700',
     color: '#1E293B',
-    marginBottom: 16,
+    marginBottom: 4,
   },
-  filterButtons: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  filterButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 25,
-    backgroundColor: '#E2E8F0',
-  },
-  activeFilterButton: {
-    backgroundColor: '#6366F1',
-  },
-  filterText: {
+  sectionSubtitle: {
     fontSize: 14,
-    fontWeight: '600',
     color: '#64748B',
-  },
-  activeFilterText: {
-    color: '#FFFFFF',
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 24,
-  },
-  actionButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    gap: 8,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  actionButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#6366F1',
+    fontWeight: '500',
   },
   transactionsList: {
-    gap: 12,
-    marginBottom: 24,
+    paddingTop: 8,
   },
-  transactionCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+    paddingTop: 80,
   },
-  transactionHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  transactionIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  emptyIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     backgroundColor: '#F1F5F9',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
-  },
-  transactionInfo: {
-    flex: 1,
-  },
-  transactionDescription: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 4,
-  },
-  customerName: {
-    fontSize: 14,
-    color: '#64748B',
-    marginBottom: 2,
-  },
-  transactionTime: {
-    fontSize: 12,
-    color: '#94A3B8',
-  },
-  amountContainer: {
-    alignItems: 'flex-end',
-  },
-  amount: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 8,
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-    textTransform: 'capitalize',
-  },
-  loadMoreButton: {
-    backgroundColor: '#6366F1',
-    borderRadius: 16,
-    padding: 16,
-    alignItems: 'center',
     marginBottom: 24,
   },
-  loadMoreText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
+  emptyIcon: {
+    fontSize: 32,
   },
-  bottomSpacing: {
-    height: 100,
+  emptyTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptySubtitle: {
+    fontSize: 16,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 24,
+    fontWeight: '500',
+  },
+  bottomPadding: {
+    height: 32,
   },
 });
