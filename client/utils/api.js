@@ -155,4 +155,32 @@ export const generateVendorQR = async (token, vendorName) => {
     throw error;
   }
 };
+
+
+export const settleUpCustomer = async (token, vendorId, settlementData) => {
+  try {
+    console.log("Settlement Data: "+settlementData)
+    console.log("Vendor ID: "+vendorId)
+    const res = await axios.post(`${API_BASE_URL}/transactions/vendor/settle`,
+      {
+        buyerId: settlementData.customerId,
+        vendorId:vendorId,
+        amount: settlementData.amount,
+        remarks: settlementData.remarks || 'Settlement payment',
+        isSettlement: true,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+    return res.data;
+  } catch (error) {
+    console.error('API Error - settleUpCustomerAlt:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
 export default apiClient;

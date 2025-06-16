@@ -10,11 +10,16 @@ import {
   StatusBar,
   RefreshControl,
   Dimensions,
+  Modal,
+  TextInput,
+  Alert,
+  Animated,
+  Easing,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getTransactionsByVendor } from '../../../utils/api';
+import { getTransactionsByVendor, settleUpCustomer } from '../../../utils/api';
 
 const { width } = Dimensions.get('window');
 
@@ -26,6 +31,14 @@ export default function TransactionDetail() {
   const [refreshing, setRefreshing] = useState(false);
   const [totalAmount, setTotalAmount] = useState(0);
   const [averageTransaction, setAverageTransaction] = useState(0);
+  
+  // Settle up modal states
+  const [settleModalVisible, setSettleModalVisible] = useState(false);
+  const [settleAmount, setSettleAmount] = useState('');
+  const [settleRemarks, setSettleRemarks] = useState('');
+  const [settlingUp, setSettlingUp] = useState(false);
+  const [slideAnim] = useState(new Animated.Value(0));
+  const [scaleAnim] = useState(new Animated.Value(0));
 
   const fetchBuyerTx = async () => {
     try {
@@ -91,6 +104,96 @@ export default function TransactionDetail() {
     return '💳';
   };
 
+  const openSettleModal = () => {
+    setSettleModalVisible(true);
+    setSettleAmount(totalAmount.toString());
+    
+    // Animate modal appearance
+    Animated.parallel([
+      Animated.spring(slideAnim, {
+        toValue: 1,
+        useNativeDriver: true,
+        tension: 100,
+        friction: 8,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        useNativeDriver: true,
+        tension: 100,
+        friction: 8,
+      }),
+    ]).start();
+  };
+
+  const closeSettleModal = () => {
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 300,
+        easing: Easing.bezier(0.25, 0.46, 0.45, 0.94),
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleAnim, {
+        toValue: 0,
+        duration: 300,
+        easing: Easing.bezier(0.25, 0.46, 0.45, 0.94),
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setSettleModalVisible(false);
+      setSettleAmount('');
+      setSettleRemarks('');
+    });
+  };
+
+  const handleSettleUp = async () => {
+    const amount = parseFloat(settleAmount);
+    
+    if (!amount || amount <= 0) {
+      Alert.alert('Invalid Amount', 'Please enter a valid amount greater than 0');
+      return;
+    }
+    
+    if (amount > totalAmount) {
+      Alert.alert('Invalid Amount', `Amount cannot exceed ₹${totalAmount.toLocaleString()}`);
+      return;
+    }
+
+    Alert.alert(
+      'Confirm Settlement',
+      `Are you sure you want to settle ₹${amount.toLocaleString()} with ${buyerName}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Settle',
+          style: 'destructive',
+          onPress: async () => {
+            setSettlingUp(true);
+            try {
+              const token = await AsyncStorage.getItem('token');
+              const vendorId = await AsyncStorage.getItem('UniqueID');
+              
+              await settleUpCustomer(token, vendorId, {
+                customerId: buyerId, // This is buyer._id from route params
+                amount: amount,
+                remarks: settleRemarks || 'Settlement payment'
+              });
+              
+              Alert.alert('Success', 'Settlement completed successfully!');
+              closeSettleModal();
+              fetchBuyerTx(); // Refresh data
+            } catch (error) {
+              Alert.alert('Error', 'Failed to process settlement. Please try again.');
+              console.error('Settlement error:', error);
+            } finally {
+              setSettlingUp(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const renderTransactionItem = ({ item, index }) => (
     <View style={[styles.transactionCard, { marginTop: index === 0 ? 16 : 0 }]}>
       <View style={styles.transactionHeader}>
@@ -134,7 +237,7 @@ export default function TransactionDetail() {
       <View style={styles.statsContainer}>
         <View style={styles.statCard}>
           <Text style={styles.statValue}>₹{totalAmount.toLocaleString()}</Text>
-          <Text style={styles.statLabel}>Total Spent</Text>
+          <Text style={styles.statLabel}>Total Due</Text>
         </View>
         <View style={styles.statCard}>
           <Text style={styles.statValue}>{buyerTransactions.length}</Text>
@@ -145,6 +248,20 @@ export default function TransactionDetail() {
           <Text style={styles.statLabel}>Average</Text>
         </View>
       </View>
+
+      {/* Settle Up Button */}
+      {totalAmount > 0 && (
+        <TouchableOpacity style={styles.settleButton} onPress={openSettleModal}>
+          <LinearGradient
+            colors={['#10B981', '#059669']}
+            style={styles.settleButtonGradient}
+          >
+            <Text style={styles.settleButtonIcon}>💸</Text>
+            <Text style={styles.settleButtonText}>Settle Up</Text>
+            <Text style={styles.settleButtonAmount}>₹{totalAmount.toLocaleString()}</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      )}
 
       {/* Section Title */}
       <View style={styles.sectionHeader}>
@@ -166,6 +283,102 @@ export default function TransactionDetail() {
         This customer hasn't made any transactions yet.
       </Text>
     </View>
+  );
+
+  const renderSettleModal = () => (
+    <Modal
+      visible={settleModalVisible}
+      transparent={true}
+      animationType="none"
+      onRequestClose={closeSettleModal}
+    >
+      <View style={styles.modalOverlay}>
+        <Animated.View
+          style={[
+            styles.modalContainer,
+            {
+              transform: [
+                {
+                  translateY: slideAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [300, 0],
+                  }),
+                },
+                {
+                  scale: scaleAnim,
+                },
+              ],
+            },
+          ]}
+        >
+          <LinearGradient
+            colors={['#10B981', '#059669']}
+            style={styles.modalHeader}
+          >
+            <Text style={styles.modalTitle}>💸 Settle Up</Text>
+            <Text style={styles.modalSubtitle}>with {buyerName}</Text>
+          </LinearGradient>
+
+          <View style={styles.modalContent}>
+            <View style={styles.amountSection}>
+              <Text style={styles.inputLabel}>Settlement Amount</Text>
+              <View style={styles.amountInputContainer}>
+                <Text style={styles.currencySymbol}>₹</Text>
+                <TextInput
+                  style={styles.amountInput}
+                  value={settleAmount}
+                  onChangeText={setSettleAmount}
+                  placeholder="0"
+                  keyboardType="numeric"
+                  maxLength={10}
+                />
+              </View>
+              <Text style={styles.amountLimit}>
+                Max: ₹{totalAmount.toLocaleString()}
+              </Text>
+            </View>
+
+            <View style={styles.remarksSection}>
+              <Text style={styles.inputLabel}>Remarks (Optional)</Text>
+              <TextInput
+                style={styles.remarksInput}
+                value={settleRemarks}
+                onChangeText={setSettleRemarks}
+                placeholder="Enter settlement remarks..."
+                multiline
+                numberOfLines={3}
+                textAlignVertical="top"
+              />
+            </View>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={closeSettleModal}
+                disabled={settlingUp}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.confirmButton, settlingUp && styles.confirmButtonDisabled]}
+                onPress={handleSettleUp}
+                disabled={settlingUp}
+              >
+                {settlingUp ? (
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                ) : (
+                  <>
+                    <Text style={styles.confirmButtonText}>Settle</Text>
+                    <Text style={styles.confirmButtonIcon}>✓</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Animated.View>
+      </View>
+    </Modal>
   );
 
   return (
@@ -210,6 +423,8 @@ export default function TransactionDetail() {
           showsVerticalScrollIndicator={false}
         />
       )}
+
+      {renderSettleModal()}
     </View>
   );
 }
@@ -331,6 +546,43 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+  },
+  settleButton: {
+    marginTop: 20,
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 12,
+  },
+  settleButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 18,
+    paddingHorizontal: 24,
+  },
+  settleButtonIcon: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  settleButtonText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    flex: 1,
+    textAlign: 'center',
+  },
+  settleButtonAmount: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
   },
   sectionHeader: {
     marginTop: 32,
@@ -457,5 +709,137 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 24,
     fontWeight: '500',
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  modalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    width: '100%',
+    maxWidth: 400,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.3,
+    shadowRadius: 30,
+    elevation: 20,
+  },
+  modalHeader: {
+    paddingVertical: 24,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  modalSubtitle: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontWeight: '500',
+  },
+  modalContent: {
+    padding: 24,
+  },
+  amountSection: {
+    marginBottom: 24,
+  },
+  inputLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginBottom: 8,
+  },
+  amountInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  currencySymbol: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#64748B',
+    marginRight: 8,
+  },
+  amountInput: {
+    flex: 1,
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#1E293B',
+    paddingVertical: 4,
+  },
+  amountLimit: {
+    fontSize: 14,
+    color: '#64748B',
+    marginTop: 8,
+    textAlign: 'right',
+    fontWeight: '500',
+  },
+  remarksSection: {
+    marginBottom: 32,
+  },
+  remarksInput: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#1E293B',
+    minHeight: 80,
+    fontWeight: '500',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  cancelButton: {
+    flex: 1,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 16,
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  confirmButton: {
+    flex: 1,
+    backgroundColor: '#10B981',
+    borderRadius: 16,
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+  },
+  confirmButtonDisabled: {
+    backgroundColor: '#94A3B8',
+  },
+  confirmButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginRight: 8,
+  },
+  confirmButtonIcon: {
+    fontSize: 16,
+    color: '#FFFFFF',
   },
 });
