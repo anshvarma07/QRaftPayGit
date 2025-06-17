@@ -93,7 +93,8 @@ const handleSubmit = async () => {
     const payload = {
       vendorId: vendorIdParts[2].trim(),
       amount: parseFloat(amount),
-      remarks: remarks.trim()
+      remarks: remarks.trim(),
+      type: 'debit'
     };
 
     // Call API
