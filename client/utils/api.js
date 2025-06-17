@@ -43,7 +43,8 @@ export const createTransaction = async (token, transactionData) => {
     const response = await apiClient.post('/transactions', {
       vendorId: transactionData.vendorId,
       amount: transactionData.amount,
-      remarks: transactionData.remarks
+      remarks: transactionData.remarks,
+      type: transactionData.type
     }, {
       headers: {
         Authorization: `Bearer ${token}`
@@ -165,7 +166,7 @@ export const settleUpCustomer = async (token, vendorId, settlementData) => {
       {
         buyerId: settlementData.customerId,
         vendorId:vendorId,
-        amount: settlementData.amount,
+        paymentAmount: settlementData.amount,
         remarks: settlementData.remarks || 'Settlement payment',
         isSettlement: true,
       },
