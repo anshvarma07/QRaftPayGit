@@ -76,8 +76,8 @@ exports.settleTransactions = async (req, res) => {
     // Step 2: Find all outstanding 'debit' transactions (where buyer owes vendor)
     // Ordered by 'createdAt' to ensure oldest debts are settled first (First-In, First-Out)
     const outstandingDebits = await Transaction.find({
-      vendorId: mongoose.Types.ObjectId(vendorId),
-      buyerId: mongoose.Types.ObjectId(buyerId),
+      vendorId: vendorId,
+      buyerId: buyerId,
       type: 'debit',
       paymentStatus: { $in: ['Pending', 'Partially Paid'] } // Only consider debts that are not fully paid
     }).sort({ createdAt: 1 }); // Sort by creation date in ascending order (oldest first)
@@ -115,8 +115,8 @@ exports.settleTransactions = async (req, res) => {
     const currentOutstandingBalanceResult = await Transaction.aggregate([
       {
         $match: {
-          vendorId: mongoose.Types.ObjectId(vendorId),
-          buyerId: mongoose.Types.ObjectId(buyerId),
+          vendorId: vendorId,
+          buyerId: buyerId,
           type: 'debit',
           paymentStatus: { $in: ['Pending', 'Partially Paid'] } // Sum up only remaining outstanding debits
         }
