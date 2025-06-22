@@ -11,8 +11,8 @@ const transactionSchema = new mongoose.Schema({
   },
   paymentStatus: {
     type: String,
-    enum: ['Pending', 'Partially Paid', 'Paid'], // Status for 'debit' type transactions
-    default: 'Pending'
+    enum: ['Pending', 'Partially Paid', 'Paid','Settlement'], // Status for 'debit' type transactions
+    required: true,
   },
   outstandingAmount: { type: Number, default: 0 }, // For 'debit' type transactions: the remaining amount due for *this specific debt entry*
   remarks: String,

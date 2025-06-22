@@ -107,9 +107,9 @@ export default function VendorTransactionsPage() {
   };
 
   const getTransactionIcon = (transaction) => {
-    const status = transaction.status || 'completed';
+    const status = transaction.paymentStatus;
     switch (status.toLowerCase()) {
-      case 'completed':
+      case 'paid':
       case 'success':
         return <CheckCircle size={20} color="#4CAF50" />;
       case 'pending':
@@ -122,15 +122,17 @@ export default function VendorTransactionsPage() {
   };
 
   const getStatusColor = (transaction) => {
-    const status = transaction.status || 'completed';
+    const status = transaction.paymentStatus || 'completed';
     switch (status.toLowerCase()) {
-      case 'completed':
+      case 'paid':
       case 'success':
         return '#4CAF50';
+      case 'partially paid':
+        return '#2196F3';
       case 'pending':
-        return '#FF9800';
-      case 'failed':
         return '#F44336';
+      case 'settlement':
+        return '#FF9800';
       default:
         return '#2196F3';
     }
@@ -274,7 +276,7 @@ export default function VendorTransactionsPage() {
                             { backgroundColor: getStatusColor(transaction) }
                           ]}>
                             <Text style={styles.statusText}>
-                              {(transaction.status || 'completed').toUpperCase()}
+                              {(transaction.paymentStatus || 'completed').toUpperCase()}
                             </Text>
                           </View>
                         </View>

@@ -69,7 +69,7 @@ exports.settleTransactions = async (req, res) => {
       amount: -paymentAmount, // Negative amount signifies money coming INTO the vendor's account
       type: 'payment',
       remarks: `Payment received from Buyer ID: ${buyerId} for ₹${paymentAmount}`,
-      paymentStatus: 'Paid', // The payment itself is 'Paid' (i.e., completed)
+      paymentStatus: 'Settlement', // The payment itself is 'Paid' (i.e., completed)
       // No outstandingAmount for 'payment' type
     });
 
