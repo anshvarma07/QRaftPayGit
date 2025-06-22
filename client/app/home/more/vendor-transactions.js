@@ -199,7 +199,7 @@ export default function VendorTransactionsPage() {
               <View style={styles.summaryItem}>
                 <DollarSign size={24} color="#4CAF50" />
                 <Text style={styles.summaryValue}>{formatCurrency(totalAmount)}</Text>
-                <Text style={styles.summaryLabel}>Total Spent</Text>
+                <Text style={styles.summaryLabel}>Total Due</Text>
               </View>
               <View style={styles.summaryDivider} />
               <View style={styles.summaryItem}>
