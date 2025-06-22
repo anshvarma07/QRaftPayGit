@@ -36,10 +36,11 @@ export default function VendorTransactionsPage() {
     if (transactionsParam) {
       try {
         const parsedTransactions = JSON.parse(transactionsParam);
-        setTransactions(parsedTransactions);
+        const sortedTransactions = parsedTransactions.sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date));
+        setTransactions(sortedTransactions);
         setVendorName(vendorNameParam || 'Unknown Vendor');
 
-        const total = parsedTransactions.reduce((sum, transaction) => {
+        const total = sortedTransactions.reduce((sum, transaction) => {
           return sum + parseFloat(transaction.amount || 0);
         }, 0);
         setTotalAmount(total);
@@ -71,7 +72,7 @@ export default function VendorTransactionsPage() {
   const shareTransactionDetails = async (transaction) => {
     try {
       const message = `Transaction Receipt\n\nVendor: ${vendorName}\nAmount: ${formatCurrency(transaction.amount)}\nDate: ${formatDateTime(transaction.createdAt || transaction.date)}\nTransaction ID: ${transaction._id || transaction.id}\nRemarks: ${transaction.remarks || 'No remarks'}\n\nPowered by QRaftPay`;
-      
+
       await Share.share({
         message: message,
         title: 'Transaction Receipt',
@@ -102,7 +103,7 @@ export default function VendorTransactionsPage() {
   };
 
   const formatCurrency = (amount) => {
-    return `$${parseFloat(amount || 0).toFixed(2)}`;
+    return `₹${parseFloat(amount || 0).toFixed(2)}`;
   };
 
   const getTransactionIcon = (transaction) => {
@@ -146,14 +147,14 @@ export default function VendorTransactionsPage() {
     }, {});
 
     const sortedDates = Object.keys(grouped).sort((a, b) => new Date(b) - new Date(a));
-    
+
     const result = {};
     sortedDates.forEach(date => {
       result[date] = grouped[date].sort((a, b) => 
         new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date)
       );
     });
-    
+
     return result;
   };
 
@@ -290,170 +291,38 @@ export default function VendorTransactionsPage() {
   );
 }
 
-
-  const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-    },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: 16,
-      paddingTop: 50,
-      paddingBottom: 16,
-    },
-    backButton: {
-      padding: 8,
-      marginRight: 8,
-    },
-    headerTitleContainer: {
-      flex: 1,
-      marginLeft: 8,
-    },
-    headerTitle: {
-      fontSize: 20,
-      fontWeight: 'bold',
-      color: '#fff',
-    },
-    headerSubtitle: {
-      fontSize: 14,
-      color: 'rgba(255, 255, 255, 0.8)',
-      marginTop: 2,
-    },
-    shareButton: {
-      padding: 8,
-      marginLeft: 8,
-    },
-    summaryContainer: {
-      paddingHorizontal: 16,
-      marginBottom: 16,
-    },
-    summaryCard: {
-      borderRadius: 16,
-      padding: 20,
-      backdropFilter: 'blur(10px)',
-    },
-    summaryContent: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-    },
-    summaryItem: {
-      flex: 1,
-      alignItems: 'center',
-    },
-    summaryValue: {
-      fontSize: 18,
-      fontWeight: 'bold',
-      color: '#fff',
-      marginTop: 8,
-      marginBottom: 4,
-    },
-    summaryLabel: {
-      fontSize: 12,
-      color: 'rgba(255, 255, 255, 0.8)',
-      textAlign: 'center',
-    },
-    summaryDivider: {
-      width: 1,
-      height: 40,
-      backgroundColor: 'rgba(255, 255, 255, 0.3)',
-      marginHorizontal: 16,
-    },
-    scrollView: {
-      flex: 1,
-    },
-    scrollContent: {
-      paddingHorizontal: 16,
-      paddingBottom: 20,
-    },
-    emptyState: {
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingVertical: 60,
-    },
-    emptyTitle: {
-      fontSize: 18,
-      fontWeight: '600',
-      color: '#fff',
-      marginTop: 16,
-      marginBottom: 8,
-    },
-    emptySubtitle: {
-      fontSize: 14,
-      color: 'rgba(255, 255, 255, 0.7)',
-      textAlign: 'center',
-      paddingHorizontal: 32,
-    },
-    dateGroup: {
-      marginBottom: 24,
-    },
-    dateHeader: {
-      fontSize: 16,
-      fontWeight: '600',
-      color: '#fff',
-      marginBottom: 12,
-      paddingLeft: 4,
-    },
-    transactionCard: {
-      marginBottom: 12,
-      borderRadius: 12,
-      overflow: 'hidden',
-    },
-    transactionGradient: {
-      borderRadius: 12,
-    },
-    transactionContent: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      padding: 16,
-    },
-    transactionLeft: {
-      flex: 1,
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    transactionIcon: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: 'rgba(255, 255, 255, 0.2)',
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginRight: 12,
-    },
-    transactionDetails: {
-      flex: 1,
-    },
-    transactionAmount: {
-      fontSize: 18,
-      fontWeight: 'bold',
-      color: '#fff',
-      marginBottom: 2,
-    },
-    transactionTime: {
-      fontSize: 12,
-      color: 'rgba(255, 255, 255, 0.7)',
-      marginBottom: 2,
-    },
-    transactionRemarks: {
-      fontSize: 12,
-      color: 'rgba(255, 255, 255, 0.6)',
-      fontStyle: 'italic',
-    },
-    transactionRight: {
-      alignItems: 'flex-end',
-    },
-    statusBadge: {
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: 12,
-      minWidth: 70,
-      alignItems: 'center',
-    },
-    statusText: {
-      fontSize: 10,
-      fontWeight: '600',
-      color: '#fff',
-    },
-  });
+const styles = StyleSheet.create({
+  container: { flex: 1 },
+  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 50, paddingBottom: 16 },
+  backButton: { padding: 8, marginRight: 8 },
+  headerTitleContainer: { flex: 1, marginLeft: 8 },
+  headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#fff' },
+  headerSubtitle: { fontSize: 14, color: 'rgba(255, 255, 255, 0.8)', marginTop: 2 },
+  shareButton: { padding: 8, marginLeft: 8 },
+  summaryContainer: { paddingHorizontal: 16, marginBottom: 16 },
+  summaryCard: { borderRadius: 16, padding: 20 },
+  summaryContent: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  summaryItem: { flex: 1, alignItems: 'center' },
+  summaryValue: { fontSize: 18, fontWeight: 'bold', color: '#fff', marginTop: 8, marginBottom: 4 },
+  summaryLabel: { fontSize: 12, color: 'rgba(255, 255, 255, 0.8)', textAlign: 'center' },
+  summaryDivider: { width: 1, height: 40, backgroundColor: 'rgba(255, 255, 255, 0.3)', marginHorizontal: 16 },
+  scrollView: { flex: 1 },
+  scrollContent: { paddingHorizontal: 16, paddingBottom: 20 },
+  emptyState: { alignItems: 'center', justifyContent: 'center', paddingVertical: 60 },
+  emptyTitle: { fontSize: 18, fontWeight: '600', color: '#fff', marginTop: 16, marginBottom: 8 },
+  emptySubtitle: { fontSize: 14, color: 'rgba(255, 255, 255, 0.7)', textAlign: 'center', paddingHorizontal: 32 },
+  dateGroup: { marginBottom: 24 },
+  dateHeader: { fontSize: 16, fontWeight: '600', color: '#fff', marginBottom: 12, paddingLeft: 4 },
+  transactionCard: { marginBottom: 12, borderRadius: 12, overflow: 'hidden' },
+  transactionGradient: { borderRadius: 12 },
+  transactionContent: { flexDirection: 'row', alignItems: 'center', padding: 16 },
+  transactionLeft: { flex: 1, flexDirection: 'row', alignItems: 'center' },
+  transactionIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255, 255, 255, 0.2)', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  transactionDetails: { flex: 1 },
+  transactionAmount: { fontSize: 18, fontWeight: 'bold', color: '#fff', marginBottom: 2 },
+  transactionTime: { fontSize: 12, color: 'rgba(255, 255, 255, 0.7)', marginBottom: 2 },
+  transactionRemarks: { fontSize: 12, color: 'rgba(255, 255, 255, 0.6)', fontStyle: 'italic' },
+  transactionRight: { alignItems: 'flex-end' },
+  statusBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, minWidth: 70, alignItems: 'center' },
+  statusText: { fontSize: 10, fontWeight: '600', color: '#fff' },
+});

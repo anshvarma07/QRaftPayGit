@@ -96,8 +96,15 @@ export default function MorePage() {
 
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-            <ArrowLeft size={24} color="#fff" />
+          <TouchableOpacity style={styles.backButton} onPress={handleBack} activeOpacity={0.8}>
+            <LinearGradient
+              colors={['#667eea', '#764ba2', 'rgba(0,0,0,0.1)']}
+              style={styles.backButtonGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <ArrowLeft size={24} color="#fff" />
+            </LinearGradient>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>More Options</Text>
           <View style={styles.placeholder} />
@@ -130,7 +137,7 @@ export default function MorePage() {
                 activeOpacity={0.8}
               >
                 <LinearGradient
-                  colors={[...item.gradient, 'rgba(0,0,0,0.1)']}
+                  colors={item.gradient}
                   style={styles.menuItemGradient}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
@@ -222,11 +229,18 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   backButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  backButtonGradient: {
     padding: 12,
     borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerTitle: {
     fontSize: 20,
@@ -297,7 +311,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   menuItemIcon: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
     padding: 12,
     borderRadius: 16,
     marginRight: 16,

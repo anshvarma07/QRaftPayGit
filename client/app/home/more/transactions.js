@@ -49,7 +49,6 @@ export default function TransactionsPage() {
       }
 
       const response = await getTransactions(token);
-      // Handle the API response structure: { success: true, data: [...] }
       const transactionsData = response.data || response.transactions || response;
       
       setTransactions(transactionsData);
@@ -68,7 +67,6 @@ export default function TransactionsPage() {
 
   const groupTransactionsByVendor = (transactionsData) => {
     const grouped = transactionsData.reduce((acc, transaction) => {
-      // Handle the new API structure where vendor info is nested in vendorId
       const vendorId = transaction.vendorId?._id || transaction.vendorId || 'unknown';
       const vendorName = transaction.vendorId?.name || transaction.vendorName || `Vendor ${vendorId}`;
       
@@ -140,6 +138,8 @@ export default function TransactionsPage() {
       <LinearGradient
         colors={['#667eea', '#764ba2', '#f093fb']}
         style={[styles.container, styles.centerContent]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
       >
         <ActivityIndicator size="large" color="#fff" />
         <Text style={styles.loadingText}>Loading transactions...</Text>
@@ -156,112 +156,110 @@ export default function TransactionsPage() {
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-            <ArrowLeft size={24} color="#fff" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Your Transactions</Text>
-          <TouchableOpacity style={styles.filterButton}>
-            <Filter size={20} color="#fff" />
-          </TouchableOpacity>
-        </View>
+      
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+          <ArrowLeft size={20} color="#fff" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Transactions</Text>
+        <TouchableOpacity style={styles.filterButton}>
+          <Filter size={20} color="#fff" />
+        </TouchableOpacity>
+      </View>
 
-        {/* Stats Section */}
-        <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <DollarSign size={20} color="#4CAF50" />
-            <Text style={styles.statValue}>{formatCurrency(totalAmount)}</Text>
-            <Text style={styles.statLabel}>Total Spent</Text>
+      {/* Stats Section */}
+      <View style={styles.statsContainer}>
+        <View style={styles.statCard}>
+          <View style={styles.statIconContainer}>
+            <DollarSign size={18} color="#fff" />
           </View>
-          <View style={styles.statCard}>
-            <Receipt size={20} color="#2196F3" />
-            <Text style={styles.statValue}>{totalTransactions}</Text>
-            <Text style={styles.statLabel}>Transactions</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Store size={20} color="#FF9800" />
-            <Text style={styles.statValue}>{Object.keys(groupedTransactions).length}</Text>
-            <Text style={styles.statLabel}>Vendors</Text>
-          </View>
+          <Text style={styles.statValue}>{formatCurrency(totalAmount)}</Text>
+          <Text style={styles.statLabel}>Total Spent</Text>
         </View>
+        
+        <View style={styles.statCard}>
+          <View style={styles.statIconContainer}>
+            <Receipt size={18} color="#fff" />
+          </View>
+          <Text style={styles.statValue}>{totalTransactions}</Text>
+          <Text style={styles.statLabel}>Transactions</Text>
+        </View>
+        
+        <View style={styles.statCard}>
+          <View style={styles.statIconContainer}>
+            <Store size={18} color="#fff" />
+          </View>
+          <Text style={styles.statValue}>{Object.keys(groupedTransactions).length}</Text>
+          <Text style={styles.statLabel}>Vendors</Text>
+        </View>
+      </View>
 
-        {/* Transactions List */}
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor="#fff"
-              colors={['#fff']}
-            />
-          }
-          showsVerticalScrollIndicator={false}
-        >
-          {Object.keys(groupedTransactions).length === 0 ? (
-            <View style={styles.emptyState}>
-              <AlertCircle size={48} color="rgba(255, 255, 255, 0.6)" />
-              <Text style={styles.emptyTitle}>No Transactions Found</Text>
-              <Text style={styles.emptySubtitle}>
-                You haven't made any transactions yet.
-              </Text>
+      {/* Transactions List */}
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#2563eb"
+            colors={['#2563eb']}
+          />
+        }
+        showsVerticalScrollIndicator={false}
+      >
+        {Object.keys(groupedTransactions).length === 0 ? (
+          <View style={styles.emptyState}>
+            <View style={styles.emptyIconContainer}>
+              <Receipt size={48} color="rgba(255, 255, 255, 0.6)" />
             </View>
-          ) : (
-            <View style={styles.vendorsList}>
-              <Text style={styles.sectionTitle}>Transactions by Vendor</Text>
-              {Object.values(groupedTransactions)
-                .sort((a, b) => b.totalAmount - a.totalAmount) // Sort by total amount descending
-                .map((vendorData, index) => (
-                <TouchableOpacity
-                  key={vendorData.vendorId}
-                  style={styles.vendorCard}
-                  onPress={() => handleVendorPress(vendorData)}
-                  activeOpacity={0.8}
-                >
-                  <LinearGradient
-                    colors={['rgba(255, 255, 255, 0.2)', 'rgba(255, 255, 255, 0.1)']}
-                    style={styles.vendorCardGradient}
-                  >
-                    <View style={styles.vendorCardContent}>
-                      <View style={styles.vendorInfo}>
-                        <View style={styles.vendorIcon}>
-                          <Store size={24} color="#fff" />
-                        </View>
-                        <View style={styles.vendorDetails}>
-                          <Text style={styles.vendorName}>{vendorData.vendorName}</Text>
-                          <Text style={styles.vendorStats}>
-                            {vendorData.transactionCount} transaction{vendorData.transactionCount !== 1 ? 's' : ''}
-                          </Text>
-                        </View>
-                      </View>
-                      <View style={styles.vendorAmount}>
-                        <Text style={styles.vendorTotal}>
-                          {formatCurrency(vendorData.totalAmount)}
-                        </Text>
-                        <ChevronRight size={20} color="rgba(255, 255, 255, 0.7)" />
-                      </View>
+            <Text style={styles.emptyTitle}>No Transactions Yet</Text>
+            <Text style={styles.emptySubtitle}>
+              Your transaction history will appear here once you start making purchases.
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.vendorsList}>
+            {Object.values(groupedTransactions)
+              .sort((a, b) => b.totalAmount - a.totalAmount)
+              .map((vendorData, index) => (
+              <TouchableOpacity
+                key={vendorData.vendorId}
+                style={styles.vendorCard}
+                onPress={() => handleVendorPress(vendorData)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.vendorHeader}>
+                  <View style={styles.vendorInfo}>
+                    <View style={styles.vendorIconContainer}>
+                      <Store size={20} color="#374151" />
                     </View>
-                    
-                    {/* Recent Transaction Preview */}
-                    {vendorData.transactions.length > 0 && (
-                      <View style={styles.recentTransaction}>
-                        <Text style={styles.recentLabel}>Latest:</Text>
-                        <Text style={styles.recentDate}>
-                          {formatDate(vendorData.transactions[0]?.createdAt)}
-                        </Text>
-                        <Text style={styles.recentAmount}>
-                          {formatCurrency(vendorData.transactions[0]?.amount)}
-                        </Text>
-                      </View>
-                    )}
-                  </LinearGradient>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-        </ScrollView>
+                    <View style={styles.vendorDetails}>
+                      <Text style={styles.vendorName}>{vendorData.vendorName}</Text>
+                      <Text style={styles.transactionCount}>
+                        {vendorData.transactionCount} transaction{vendorData.transactionCount !== 1 ? 's' : ''}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.amountContainer}>
+                    <Text style={styles.totalAmount}>
+                      {formatCurrency(vendorData.totalAmount)}
+                    </Text>
+                    <ChevronRight size={16} color="#9ca3af" />
+                  </View>
+                </View>
+                
+                <View style={styles.vendorFooter}>
+                  <Text style={styles.latestTransaction}>
+                  {(() => {const sortedTransactions = [...vendorData.transactions].sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date));const latest = sortedTransactions[0];return (<Text style={styles.latestTransaction}>Last: {formatDate(latest?.createdAt || latest?.date)} • {formatCurrency(latest?.amount)}</Text>);})()}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+              </ScrollView>
       </LinearGradient>
     </>
   );
@@ -281,26 +279,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: StatusBar.currentHeight + 20,
-    paddingHorizontal: 24,
+    paddingTop: StatusBar.currentHeight + 16,
+    paddingHorizontal: 20,
     paddingBottom: 20,
   },
   backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    padding: 12,
-    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: 18,
+    fontWeight: '600',
     color: '#fff',
   },
   filterButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    padding: 12,
-    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
   },
@@ -308,30 +312,39 @@ const styles = StyleSheet.create({
   // Stats
   statsContainer: {
     flexDirection: 'row',
-    paddingHorizontal: 24,
-    marginBottom: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    marginBottom: 12,
   },
   statCard: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 16,
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 16,
-    padding: 16,
-    alignItems: 'center',
-    flex: 1,
     marginHorizontal: 4,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
   },
+  statIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
   statValue: {
-    fontSize: 18,
-    fontWeight: '800',
+    fontSize: 16,
+    fontWeight: '700',
     color: '#fff',
-    marginTop: 8,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   statLabel: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.7)',
-    textAlign: 'center',
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontWeight: '500',
   },
 
   // Scroll View
@@ -339,38 +352,27 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
     paddingBottom: 20,
-  },
-
-  // Section
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#fff',
-    marginBottom: 16,
   },
 
   // Vendor Cards
   vendorsList: {
-    marginBottom: 20,
+    gap: 12,
   },
   vendorCard: {
-    marginBottom: 16,
-    borderRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 6,
-  },
-  vendorCardGradient: {
-    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 16,
     padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
   },
-  vendorCardContent: {
+  vendorHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -381,86 +383,87 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
   },
-  vendorIcon: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    padding: 12,
-    borderRadius: 16,
-    marginRight: 16,
+  vendorIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#f8fafc',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
   },
   vendorDetails: {
     flex: 1,
   },
   vendorName: {
-    fontSize: 18,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1e293b',
+    marginBottom: 2,
+  },
+  transactionCount: {
+    fontSize: 13,
+    color: '#64748b',
+    fontWeight: '500',
+  },
+  amountContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  totalAmount: {
+    fontSize: 16,
     fontWeight: '700',
-    color: '#fff',
-    marginBottom: 4,
+    color: '#059669',
   },
-  vendorStats: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
-  },
-  vendorAmount: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  vendorTotal: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#fff',
-    marginRight: 8,
-  },
-
-  // Recent Transaction
-  recentTransaction: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  vendorFooter: {
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+    borderTopColor: '#f1f5f9',
   },
-  recentLabel: {
+  latestTransaction: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.6)',
-    fontWeight: '600',
-  },
-  recentDate: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.8)',
-    flex: 1,
-    textAlign: 'center',
-  },
-  recentAmount: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#4CAF50',
+    color: '#64748b',
+    fontWeight: '500',
   },
 
   // Empty State
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 60,
+    paddingVertical: 80,
+    paddingHorizontal: 40,
+  },
+  emptyIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
   },
   emptyTitle: {
-    fontSize: 24,
-    fontWeight: '700',
+    fontSize: 20,
+    fontWeight: '600',
     color: '#fff',
-    marginTop: 16,
     marginBottom: 8,
+    textAlign: 'center',
   },
   emptySubtitle: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.8)',
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 20,
   },
 
   // Loading
   loadingText: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#fff',
-    marginTop: 16,
+    marginTop: 12,
+    fontWeight: '500',
   },
 });
