@@ -14,7 +14,7 @@ import {
 import { useRouter } from 'expo-router';
 import { login } from '../utils/auth';
 import { LinearGradient } from 'expo-linear-gradient';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import SafeStorage from '../utils/storage';
 import { Ionicons } from '@expo/vector-icons';
 
 const { width, height } = Dimensions.get('window');
@@ -31,20 +31,25 @@ export default function LoginScreen() {
     try {
       const res = await login(email, password);
       if (res.success) {
-        await AsyncStorage.setItem('token', res.token);
-        await AsyncStorage.setItem('username', res.user.name);
-        await AsyncStorage.setItem('UniqueID', res.user._id);
-        Alert.alert('Welcome back!', 'Login successful');
-        if (res.user.role === 'vendor') {
-          router.replace('/vendor/navigation/AppNavigator');
-        }
-        else if (res.user.role === 'buyer') {
-          router.replace('/home/landingpage');
+        // Use safe storage to save user data
+        const saveSuccess = await SafeStorage.saveUserData(res);
+        
+        if (saveSuccess) {
+          Alert.alert('Welcome back!', 'Login successful');
+          if (res.user.role === 'vendor') {
+            router.replace('/vendor/navigation/AppNavigator');
+          }
+          else if (res.user.role === 'buyer') {
+            router.replace('/home/landingpage');
+          }
+        } else {
+          Alert.alert('Warning', 'Login successful but failed to save session data. Please try again.');
         }
       } else {
         Alert.alert('Login failed', res.message);
       }
     } catch (error) {
+      console.error('Login error:', error);
       Alert.alert('Error', 'Something went wrong. Please try again.');
     } finally {
       setIsLoading(false);

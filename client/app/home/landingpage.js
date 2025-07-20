@@ -9,7 +9,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import SafeStorage from '../../utils/storage';
 import { QrCode, LogOut, Sparkles, MoreHorizontal } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -28,9 +28,14 @@ export default function LandingPage() {
           text: 'Logout',
           style: 'destructive',
           onPress: async () => {
-            await AsyncStorage.removeItem('token');
-            Alert.alert('Logged out successfully');
-            router.replace('/login');
+            try {
+              await SafeStorage.clearUserData();
+              Alert.alert('Logged out successfully');
+              router.replace('/login');
+            } catch (error) {
+              console.error('Logout error:', error);
+              Alert.alert('Error', 'Failed to logout properly. Please try again.');
+            }
           }
         }
       ]

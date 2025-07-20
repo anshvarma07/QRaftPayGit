@@ -8,7 +8,7 @@ import {
   Platform,
   StatusBar 
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import SafeStorage from '../../../utils/storage';
 import { MoreVertical, Bell } from 'lucide-react-native';
 import { router } from 'expo-router';
 
@@ -20,8 +20,13 @@ const Header = () => {
 
   useEffect(() => {
     const fetchUsername = async () => {
-      const name = await AsyncStorage.getItem('username');
-      setVendorName(name || 'Vendor');
+      try {
+        const name = await SafeStorage.getUsername();
+        setVendorName(name || 'Vendor');
+      } catch (error) {
+        console.error('Error fetching username:', error);
+        setVendorName('Vendor');
+      }
     };
     fetchUsername();
   }, []);

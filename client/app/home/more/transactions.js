@@ -11,7 +11,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import SafeStorage from '../../../utils/storage';
 import {
   ArrowLeft,
   Receipt,
@@ -41,7 +41,7 @@ export default function TransactionsPage() {
 
   const loadTransactions = async () => {
     try {
-      const token = await AsyncStorage.getItem('token');
+      const token = await SafeStorage.getToken();
       if (!token) {
         Alert.alert('Error', 'Authentication token not found');
         router.replace('/login');

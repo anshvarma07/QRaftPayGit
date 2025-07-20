@@ -10,7 +10,7 @@ import {
   Dimensions,
   StatusBar,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import SafeStorage from '../../../utils/storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import Header from '../components/Header';
 import { getTransactionsByVendor } from '../../../utils/api';
@@ -28,8 +28,8 @@ export default function TransactionsScreen() {
 
   const fetchTransactions = async () => {
     try {
-      const token = await AsyncStorage.getItem('token');
-      const vendorId = await AsyncStorage.getItem('UniqueID');
+      const token = await SafeStorage.getToken();
+      const vendorId = await SafeStorage.getUniqueId();
       if (token && vendorId) {
         const txData = await getTransactionsByVendor(token, vendorId);
         setTransactions(txData);
@@ -47,6 +47,8 @@ export default function TransactionsScreen() {
         setGrouped(groupedByBuyer);
         setTotalRevenue(revenue);
         setTotalCustomers(Object.keys(groupedByBuyer).length);
+      } else {
+        console.warn('Missing token or vendor ID');
       }
     } catch (error) {
       console.error('Error fetching transactions:', error);

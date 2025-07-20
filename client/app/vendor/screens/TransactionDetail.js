@@ -18,7 +18,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import SafeStorage from '../../../utils/storage';
 import { getTransactionsByVendor, settleUpCustomer } from '../../../utils/api';
 
 const { width } = Dimensions.get('window');
@@ -42,21 +42,25 @@ export default function TransactionDetail() {
 
   const fetchBuyerTx = async () => {
     try {
-      const token = await AsyncStorage.getItem('token');
-      const vendorId = await AsyncStorage.getItem('UniqueID');
+      const token = await SafeStorage.getToken();
+      const vendorId = await SafeStorage.getUniqueId();
 
-      const allTx = await getTransactionsByVendor(token, vendorId);
-      const filtered = allTx.filter((tx) => tx.buyerId._id === buyerId);
-      
-      // Sort by date (newest first)
-      const sortedTx = filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-      
-      setBuyerTransactions(sortedTx);
-      
-      // Calculate statistics
-      const total = sortedTx.reduce((sum, tx) => sum + tx.amount, 0);
-      setTotalAmount(total);
-      setAverageTransaction(sortedTx.length > 0 ? total / sortedTx.length : 0);
+      if (token && vendorId) {
+        const allTx = await getTransactionsByVendor(token, vendorId);
+        const filtered = allTx.filter((tx) => tx.buyerId._id === buyerId);
+        
+        // Sort by date (newest first)
+        const sortedTx = filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        
+        setBuyerTransactions(sortedTx);
+        
+        // Calculate statistics
+        const total = sortedTx.reduce((sum, tx) => sum + tx.amount, 0);
+        setTotalAmount(total);
+        setAverageTransaction(sortedTx.length > 0 ? total / sortedTx.length : 0);
+      } else {
+        console.warn('Missing token or vendor ID');
+      }
     } catch (error) {
       console.error('Error fetching buyer transactions:', error);
     } finally {
@@ -170,18 +174,22 @@ export default function TransactionDetail() {
           onPress: async () => {
             setSettlingUp(true);
             try {
-              const token = await AsyncStorage.getItem('token');
-              const vendorId = await AsyncStorage.getItem('UniqueID');
+              const token = await SafeStorage.getToken();
+              const vendorId = await SafeStorage.getUniqueId();
               
-              await settleUpCustomer(token, vendorId, {
-                customerId: buyerId, // This is buyer._id from route params
-                amount: amount,
-                remarks: settleRemarks || 'Settlement payment'
-              });
-              
-              Alert.alert('Success', 'Settlement completed successfully!');
-              closeSettleModal();
-              fetchBuyerTx(); // Refresh data
+              if (token && vendorId) {
+                await settleUpCustomer(token, vendorId, {
+                  customerId: buyerId, // This is buyer._id from route params
+                  amount: amount,
+                  remarks: settleRemarks || 'Settlement payment'
+                });
+                
+                Alert.alert('Success', 'Settlement completed successfully!');
+                closeSettleModal();
+                fetchBuyerTx(); // Refresh data
+              } else {
+                Alert.alert('Error', 'Missing authentication data. Please login again.');
+              }
             } catch (error) {
               Alert.alert('Error', 'Failed to process settlement. Please try again.');
               console.error('Settlement error:', error);

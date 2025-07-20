@@ -44,7 +44,8 @@ export const createTransaction = async (token, transactionData) => {
       vendorId: transactionData.vendorId,
       amount: transactionData.amount,
       remarks: transactionData.remarks,
-      type: transactionData.type
+      type: transactionData.type,
+      paymentStatus: "Pending"
     }, {
       headers: {
         Authorization: `Bearer ${token}`
@@ -169,6 +170,7 @@ export const settleUpCustomer = async (token, vendorId, settlementData) => {
         paymentAmount: settlementData.amount,
         remarks: settlementData.remarks || 'Settlement payment',
         isSettlement: true,
+        paymentStatus: 'completed',
       },
       {
         headers: {

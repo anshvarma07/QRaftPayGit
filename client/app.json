@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "QR Payment",
+    "name": "QRaft Pay",
     "slug": "qr-payment",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -9,10 +9,16 @@
       "**/*"
     ],
     "extra": {
-      "API_BASE_URL": "http://localhost:8080"
+      "API_BASE_URL": "https://qraftpaygit.onrender.com",
+      "eas": {
+        "projectId": "683b133b-4d63-432c-baca-b40bbd9d5e01"
+      }
     },
     "plugins": [
-      "expo-barcode-scanner"
-    ]
+      
+    ],
+    "android": {
+      "package": "com.qraftpay.pay"
+    }
   }
 }

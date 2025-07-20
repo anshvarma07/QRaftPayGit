@@ -30,7 +30,7 @@ exports.getTransactionsByVendor = async (req, res) => {
 
 exports.createTransaction = async (req, res) => {
   try {
-    const { vendorId, amount, remarks, qrCode,type } = req.body;
+    const { vendorId, amount, remarks, qrCode, type, paymentStatus } = req.body;
     const buyerId = req.user.id; // Assuming req.user.id correctly provides the buyer's ID.
     const transaction = await Transaction.create({
       buyerId,
@@ -38,7 +38,8 @@ exports.createTransaction = async (req, res) => {
       amount,
       remarks,
       qrCode,
-      type //['debit', 'credit', 'payment']
+      type,
+      paymentStatus // <-- add this line
     });
 
     res.json({ success: true, data: { message: 'Transaction created', transaction } });
@@ -153,6 +154,6 @@ exports.settleTransactions = async (req, res) => {
 
   } catch (error) {
     console.error('Error in settlement:', error);
-    return res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    return res.status(500).json({ success: false, message: 'Servere error', error: error.message });
   }
 };

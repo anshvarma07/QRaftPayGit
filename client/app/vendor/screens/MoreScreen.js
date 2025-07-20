@@ -13,7 +13,7 @@ import {
   Share
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import SafeStorage from '../../../utils/storage';
 import { 
   QrCode, 
   User, 
@@ -47,8 +47,13 @@ export default function MoreScreen() {
 
   useEffect(() => {
     const fetchVendorData = async () => {
-      const name = await AsyncStorage.getItem('username');
-      setVendorName(name || 'Vendor');
+      try {
+        const name = await SafeStorage.getUsername();
+        setVendorName(name || 'Vendor');
+      } catch (error) {
+        console.error('Error fetching vendor data:', error);
+        setVendorName('Vendor');
+      }
     };
     fetchVendorData();
   }, []);
@@ -56,12 +61,16 @@ export default function MoreScreen() {
   const handleGenerateQR = async () => {
     setLoading(true);
     try {
-      const token = await AsyncStorage.getItem('token');
-      const username = await AsyncStorage.getItem('username');
-      const result = await generateVendorQR(token, username);
-      setQrImage(result.data?.image);
-      setShowQRModal(true);
-      Alert.alert("Success", "QR Generated Successfully!");
+      const token = await SafeStorage.getToken();
+      const username = await SafeStorage.getUsername();
+      if (token && username) {
+        const result = await generateVendorQR(token, username);
+        setQrImage(result.data?.image);
+        setShowQRModal(true);
+        Alert.alert("Success", "QR Generated Successfully!");
+      } else {
+        Alert.alert("Error", "Missing authentication data. Please login again.");
+      }
     } catch (error) {
       console.error(error);
       Alert.alert("Failed", "QR Generation failed. Please try again.");
@@ -92,9 +101,14 @@ const handleLogout = () => {
         text: 'Logout',
         style: 'destructive',
         onPress: async () => {
-          await AsyncStorage.removeItem('token');
-          Alert.alert('Logged out successfully');
-          router.replace('/login');
+          try {
+            await SafeStorage.clearUserData();
+            Alert.alert('Logged out successfully');
+            router.replace('/login');
+          } catch (error) {
+            console.error('Logout error:', error);
+            Alert.alert('Error', 'Failed to logout properly. Please try again.');
+          }
         }
       }
     ]

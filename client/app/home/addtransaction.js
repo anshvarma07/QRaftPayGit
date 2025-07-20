@@ -15,7 +15,7 @@ import {
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { createTransaction } from '../../utils/api'; 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import SafeStorage from '../../utils/storage';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -77,7 +77,7 @@ const handleSubmit = async () => {
 
   try {
     // Get token
-    const token = await AsyncStorage.getItem('token');
+    const token = await SafeStorage.getToken();
     if (!token) {
       Alert.alert('🚫 Unauthorized', 'You must be logged in to add a transaction.', [{ text: 'OK' }]);
       return;
@@ -94,9 +94,10 @@ const handleSubmit = async () => {
       vendorId: vendorIdParts[2].trim(),
       amount: parseFloat(amount),
       remarks: remarks.trim(),
-      type: 'debit'
+      type: 'debit',
+      paymentStatus: 'Pending'
     };
-
+    console.log('Payload:', payload);
     // Call API
     const response = await createTransaction(token, payload);
 

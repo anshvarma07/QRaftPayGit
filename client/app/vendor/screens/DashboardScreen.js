@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, Dimensions, Platform, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import SafeStorage from '../../../utils/storage';
 
 import Header from '../components/Header';
 import StatCard from '../components/StatCard';
@@ -16,11 +16,13 @@ export default function DashboardScreen() {
   useEffect(() => {
     const fetchTransactions = async () => {
       try {
-        const token = await AsyncStorage.getItem('token');
-        const vendorId = await AsyncStorage.getItem('UniqueID');
+        const token = await SafeStorage.getToken();
+        const vendorId = await SafeStorage.getUniqueId();
         if (token && vendorId) {
           const txData = await getTransactionsByVendor(token, vendorId);
           setTransactions(txData);
+        } else {
+          console.warn('Missing token or vendor ID');
         }
       } catch (error) {
         console.error('Error fetching transactions:', error);
